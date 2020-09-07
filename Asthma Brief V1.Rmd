@@ -1,0 +1,229 @@
+---
+title: "Asthma Brief V1"
+author: "MikaylaBranz"
+date: "9/7/2020"
+output: html_document
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Bring in the data
+```{r}
+#Install readr package to help import csv files
+#install.packages("readr")
+
+#Open readr package 
+library(readr)
+
+#Use readr to import csv files. 
+asthma2014 <- read_csv("2014_Asthma.csv")
+asthma2015 <- read_csv("2015_Asthma.csv")
+asthma2016 <- read_csv("2016_Asthma.csv")
+asthma2017 <- read_csv("2017_Asthma.csv")
+asthma2018 <- read_csv("2018_Asthma.csv")
+asthma2019 <- read_csv("2019_Asthma.csv")
+asthma2020 <- read_csv("2020_Asthma_9-2.csv")
+```
+#combine into 1 dataset
+
+```{r}
+#load tidyverse
+library(tidyverse)
+
+#combine datasets
+
+#make list of datasets to combine
+asthmaAll <- list (asthma2014,
+                asthma2015,
+                asthma2016,
+                asthma2017,
+                asthma2018,
+                asthma2019,
+                asthma2020)
+
+#combine elements in the list
+asthma <- 
+  asthmaAll %>%
+  bind_rows()
+```
+# Trim dataset
+```{r}
+#select only variables that are relevant
+asthma <- asthma %>% 
+  select(Date, Zipcode,Age, Sex, Hospital,Race_flat,Ethnicity_Flat, HospitalName,HospitalZipCode,EssenceID, PIN, Time)
+
+colnames(asthma)
+```
+# Clean Dataset
+```{r}
+#Check and fix classes
+
+class(asthma)
+sapply(asthma,class)
+
+asthma <- data.frame(asthma) 
+asthma$Month <- as.numeric(asthma$Month)
+asthma$Day <- as.numeric(asthma$Day)
+asthma$Year <- as.factor(asthma$Year)
+asthma$Zipcode <- as.factor(asthma$Zipcode)
+asthma$Age <- as.numeric(asthma$Age)
+asthma$Sex <- as.factor(asthma$Sex)
+asthma$Race_flat <- as.factor(asthma$Race_flat)
+asthma$Ethnicity_Flat <- as.factor(asthma$Ethnicity_Flat)
+
+#Separate "Date" into month, day, and year
+asthma <- asthma %>%
+  separate(col = Date, into = c("Month", "Day", "Year"), sep = "/", remove = FALSE)  
+
+
+
+#recode Ethnicity
+asthma <- asthma %>% 
+  mutate(Ethnicity = recode(Ethnicity_Flat,
+         ";Non-Hispanic;" = "NonHispanic", 
+         ";NOT H;" = "NonHispanic", 
+         ";Not H;" = "NonHispanic",
+         ";Not Hispanic or Latino;" = "NonHispanic",
+         
+         ";Unknown;" = "UnknownOrNotReported",
+         ";N;" = "UnknownOrNotReported", 
+         ";U;" ="UnknownOrNotReported", 
+         ";NR;" = "UnknownOrNotReported", 
+         ";BL;" = "UnknownOrNotReported", 
+         ";WH;" = "UnknownOrNotReported",
+         
+         ";Hispanic;" = "HispanicLatino",
+         ";Hispa;" = "HispanicLatino", 
+         ";H;" = "HispanicLatino",
+         ";Hispanic or Latino;" = "HispanicLatino")) 
+
+#recode Race
+asthma %>% 
+  distinct(Race_flat) 
+asthma <- asthma %>% 
+  mutate(Race = recode(Race_flat,
+                       ";Black;" = "BlackOrAfricanAmerican",
+                       ";B;" = "BlackOrAfricanAmerican",
+                       ";Black or African American;" = "BlackOrAfricanAmerican",
+                       ";Black or African American;Black or African American;" = "BlackOrAfricanAmerican",
+                       
+                       ";White;" = "White",
+                       ";W;" = "White",
+                       
+                       ";Other;" = "Other",
+                       ";Ameri;" = "Other",
+                       ";O;" = "Other",
+                       ";Other Race;" = "Other",
+                       ";Other Race; Other Race;" = "Other",
+                       
+                       ";Unknown;" = "Unknown",
+                       ";NR;" = "Unknown",
+                       ";U;" = "Unknown",
+                       
+                       ";Asian or Pacific Islander;" = "AsianOrPacificIslander",
+                       ";Asian;" = "AsianOrPacificIslander",
+                       ";A;" = "AsianOrPacificIslander",
+                       ";Native hawaiian or Other Pacific Islander;" = "AsianOrPacificIslander",
+                       
+                       ";American Indian or Alaskan Native;" = "AmericanIndianOrAlaskaNative",
+                       ";Nativ;" = "AmericanIndianOrAlaskaNative",
+                       ";American Indian or Alaska Native;" = "AmericanIndianOrAlaskaNative",
+                       
+                       ";M;" = "MixedRace",
+                       ";White;Black or African American;" = "MixedRace",
+                       ";Black or African American;White;" = "MixedRace",
+                       ";Other Race;White;" = "MixedRace")) %>% 
+
+  mutate(RaceCondensed = recode(Race, 
+                               "BlackOrAfricanAmerican" = "Black",
+                               "White" = "White",
+                               "Other" = "Other",
+                               "Unknown" = "Other",
+                               "AsianOrPacificIslander" = "Other",
+                               "AmericanIndianOrAlaskaNative" = "Other",
+                               "MixedRace" = "Other"))
+
+#Remove case with impossible age (117)
+asthma <- asthma %>% 
+  filter(Age != "117")
+
+
+#note: someone is age 117 and there are NA's for age
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Explore the data
+```{r}
+#Display the variable names
+colnames(asthma2018)
+
+#Find the class of each variable
+sapply(asthma2018, class)
+
+#Check to make sure all cases had a chief complaint related to asthma by getting a list of the chief complaints with the duplicates removed. 
+
+asthma2018$ChiefComplaintOrig<- as.factor(asthma2018$ChiefComplaintOrig)
+levels(asthma2018$ChiefComplaintOrig)
+
+#Determine the number of observations (rows) and the number of variables (columns) in the dataframe
+dim(asthma2018)
+
+#Look at the summary statistics for age
+summary(asthma2018$Age)
+
+#Make a new data.frame with only the relevant variables
+library(tidyverse)
+asthma2018_trim <- asthma2018 %>% 
+  select(PIN,Date,Time, Zipcode,District, Age,Sex,Race_flat, Ethnicity_Flat)
+head(asthma2018_trim)
+
+
+#Change december to 12
+EthnicityCategorical<- asthma2018[which(asthma2018$Ethnicity_Flat=='') |,]$BirthMonth<-"12"
+ install.packages("tidyverse")
+
+#Graph the Age distribution of the Sample
+library(ggplot2)
+ggplot(data = asthma2018, aes(x = Age)) + 
+  geom_bar() + 
+  xlab("Age") + 
+  ylab("Number of people") +
+  ggtitle("Age distribution of sample")
+
+table(cut(asthma2018$Age, 10))
+
+#Check to see what age categories are represented
+unique(asthma2018$`Age Group`)
+
+unique(asthma2018$Zipcode, incomparables= FALSE)
+
+
+
+#Recode age into different categories
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
