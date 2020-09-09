@@ -57,6 +57,12 @@ colnames(asthma)
 ```
 # Clean Dataset
 ```{r}
+
+
+#Separate "Date" into month, day, and year
+asthma <- asthma %>%
+  separate(col = Date, into = c("Month", "Day", "Year"), sep = "/", remove = FALSE)  
+
 #Check and fix classes
 
 class(asthma)
@@ -65,20 +71,14 @@ sapply(asthma,class)
 asthma <- data.frame(asthma) 
 asthma$Month <- as.numeric(asthma$Month)
 asthma$Day <- as.numeric(asthma$Day)
-asthma$Year <- as.factor(asthma$Year)
+asthma$Year <- as.numeric(asthma$Year)
 asthma$Zipcode <- as.factor(asthma$Zipcode)
 asthma$Age <- as.numeric(asthma$Age)
 asthma$Sex <- as.factor(asthma$Sex)
 asthma$Race_flat <- as.factor(asthma$Race_flat)
 asthma$Ethnicity_Flat <- as.factor(asthma$Ethnicity_Flat)
 
-#Separate "Date" into month, day, and year
-asthma <- asthma %>%
-  separate(col = Date, into = c("Month", "Day", "Year"), sep = "/", remove = FALSE)  
-
-
-
-#recode Ethnicity
+#Recode Ethnicity
 asthma <- asthma %>% 
   mutate(Ethnicity = recode(Ethnicity_Flat,
          ";Non-Hispanic;" = "NonHispanic", 
@@ -98,9 +98,7 @@ asthma <- asthma %>%
          ";H;" = "HispanicLatino",
          ";Hispanic or Latino;" = "HispanicLatino")) 
 
-#recode Race
-asthma %>% 
-  distinct(Race_flat) 
+#Recode Race
 asthma <- asthma %>% 
   mutate(Race = recode(Race_flat,
                        ";Black;" = "BlackOrAfricanAmerican",
@@ -115,7 +113,7 @@ asthma <- asthma %>%
                        ";Ameri;" = "Other",
                        ";O;" = "Other",
                        ";Other Race;" = "Other",
-                       ";Other Race; Other Race;" = "Other",
+                       ";Other Race;Other Race;" = "Other",
                        
                        ";Unknown;" = "Unknown",
                        ";NR;" = "Unknown",
@@ -148,10 +146,73 @@ asthma <- asthma %>%
 asthma <- asthma %>% 
   filter(Age != "117")
 
+#remove any duplicates in data
+asthma <- distinct(asthma, .keep_all = FALSE)
 
-#note: someone is age 117 and there are NA's for age
+dim(asthma)
+
+#note: there are 30 something na's for age
 ```
+#start to graph things
+```{r}
+library(ggplot2)
 
+#change order of race
+#check levels
+levels(asthma$RaceCondensed)
+#make a list with new order of levels
+ newlevel <- c("Black", "White","Other")
+ #change the order of the levels in race
+ asthma$RaceCondensed <- factor(asthma$RaceCondensed, levels = newlevel)
+
+#Graph the total number of cases by race, over time. Only include Jan-August so that it is comparable to 2020
+asthma %>% 
+  filter(Month < 9) %>% 
+  group_by(RaceCondensed, Year) %>% 
+  summarise(total = n()) %>% 
+  ggplot() +
+   geom_line(aes(x = Year, y = total, color = RaceCondensed), size = 1) +
+  labs(y="Cases", x = "Year", color = "Race") +
+   theme(axis.text.x=element_text(angle=45,  hjust = 1)) +
+    scale_x_continuous(breaks = seq(2014,2020, by =1))+
+   theme(panel.grid.minor.x=element_blank())+
+  ggtitle("Asthma Hospitalization Cases by Race (Jan-Aug), 2014-2020")
+
+
+#Graph the total number of cases by zipcode in 2019
+asthma %>% 
+  filter(Year==2019) %>% 
+  group_by(Zipcode) %>% 
+summarise(total = n()) %>% 
+  arrange(total) %>% 
+  ggplot() +
+   geom_col(aes(x = reorder(Zipcode, -total), y= total, dodge = TRUE), fill= "Maroon") +
+  theme(axis.text.x=element_text(angle=45, hjust=1), legend.position = "none") +
+  scale_y_continuous(expand = c(0,0),
+                     limits = c(0,300)) +
+  labs(y="Cases", x = "Zip Code")+
+  ggtitle("Asthma Hospitalization Cases by Zip Code, Jan.- Dec. 2019")
+asthma %>% 
+  filter(Year==2020) %>% 
+  group_by(Zipcode) %>% 
+summarise(total = n()) %>% 
+  arrange(total) %>% 
+  ggplot() +
+   geom_col(aes(x = reorder(Zipcode, -total), y= total, dodge = TRUE), fill = "Maroon") +
+  theme(axis.text.x=element_text(angle=45,hjust=1,), legend.position = "none") +
+    scale_y_continuous(expand = c(0,0), limits = c(0,150)) +
+  labs(y="Cases", x = "Zip Code")+
+  ggtitle("Asthma Hospitalization Cases by Zip Code, Jan.-Aug. 2020")
+
+
+ 
+ #Now figure out how to do it as a proportion of the population.
+
+
+
+
+
+```
 
 
 
@@ -169,61 +230,36 @@ asthma <- asthma %>%
 
 ## Explore the data
 ```{r}
-#Display the variable names
-colnames(asthma2018)
-
-#Find the class of each variable
-sapply(asthma2018, class)
-
-#Check to make sure all cases had a chief complaint related to asthma by getting a list of the chief complaints with the duplicates removed. 
-
-asthma2018$ChiefComplaintOrig<- as.factor(asthma2018$ChiefComplaintOrig)
-levels(asthma2018$ChiefComplaintOrig)
-
-#Determine the number of observations (rows) and the number of variables (columns) in the dataframe
-dim(asthma2018)
-
-#Look at the summary statistics for age
-summary(asthma2018$Age)
-
-#Make a new data.frame with only the relevant variables
-library(tidyverse)
-asthma2018_trim <- asthma2018 %>% 
-  select(PIN,Date,Time, Zipcode,District, Age,Sex,Race_flat, Ethnicity_Flat)
-head(asthma2018_trim)
-
-
-#Change december to 12
-EthnicityCategorical<- asthma2018[which(asthma2018$Ethnicity_Flat=='') |,]$BirthMonth<-"12"
- install.packages("tidyverse")
-
-#Graph the Age distribution of the Sample
-library(ggplot2)
-ggplot(data = asthma2018, aes(x = Age)) + 
-  geom_bar() + 
-  xlab("Age") + 
-  ylab("Number of people") +
-  ggtitle("Age distribution of sample")
-
-table(cut(asthma2018$Age, 10))
-
-#Check to see what age categories are represented
-unique(asthma2018$`Age Group`)
-
-unique(asthma2018$Zipcode, incomparables= FALSE)
-
 
 
 #Recode age into different categories
+asthma <- asthma %>% 
+  mutate(AgeGroup =  if_else(Age %in% 0:9, "0-9",
+                     ifelse(Age %in% 10:19, "10-19",
+                     ifelse(Age %in% 20:29, "20-29",
+                     ifelse(Age %in% 30:39, "30-39",
+                     ifelse(Age %in% 40:49, "40-49",
+                     ifelse(Age %in% 50:59, "50-59",
+                     ifelse(Age %in% 60:69, "60-69",
+                     ifelse(Age %in% 70:79, "70-79",
+                     ifelse(Age >= 80, "80+", "NA"))))))))))
+
+#make AgeGroup factor variable
+asthma$AgeGroup<-as.factor(asthma$AgeGroup)
+
+asthma <- asthma %>% 
+  mutate(AgeGroupPractical =  
+                     if_else(Age %in% 0:5, "0-5",
+                     ifelse(Age %in% 6:10, "6-10",
+                     ifelse(Age %in% 11:14, "11-14",
+                     ifelse(Age %in% 15:18, "15-18",
+                     ifelse(Age %in% 19:26, "19-26",
+                     ifelse(Age %in% 27:39, "27-39",
+                     ifelse(Age %in% 40:59, "40-59",
+                     ifelse(Age %in% 60:79, "60-79",
+                     ifelse(Age >= 80, "80+", "NA"))))))))))
+levels(asthma$AgeGroup)
+       
 
 ```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+ 
