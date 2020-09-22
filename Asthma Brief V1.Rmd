@@ -25,7 +25,7 @@ asthma2018 <- read_csv("2018_Asthma.csv")
 asthma2019 <- read_csv("2019_Asthma.csv")
 asthma2020 <- read_csv("2020_Asthma_9-2.csv")
 ```
-# Combine into 1 dataset
+# Combine into 1 Dataset
 ```{r}
 #load tidyverse
 library(tidyverse)
@@ -164,6 +164,8 @@ asthma <- distinct(asthma, .keep_all = FALSE)
 #Graph cases by Race
 ```{r}
 library(ggplot2)
+## Graph by number of cases
+
 
 #change order of race
 #check levels
@@ -184,9 +186,9 @@ asthma %>%
    theme(axis.text.x=element_text(angle=45,  hjust = 1)) +
     scale_x_continuous(breaks = seq(2014,2020, by =1))+
    theme(panel.grid.minor.x=element_blank())+
-  ggtitle("Asthma Hospitalization Cases by Race (Jan-Aug), 2014-2020")
+  ggtitle("Asthma-Related ER Visits by Race (Jan-Aug), 2014-2020")
 
-#Graph the total number of cases by race, over time. Only include Jan-August so that it is comparable to 2020
+#Graph the total number of cases by race, over time. Use all race categories. Only include Jan-August so that it is comparable to 2020
 asthma %>% 
   filter(Month < 9) %>% 
   group_by(Race, Year) %>% 
@@ -197,9 +199,9 @@ asthma %>%
    theme(axis.text.x=element_text(angle=45,  hjust = 1)) +
     scale_x_continuous(breaks = seq(2014,2020, by =1))+
    theme(panel.grid.minor.x=element_blank())+
-  ggtitle("Asthma Hospitalization Cases by Race (Jan-Aug), 2014-2020")
+  ggtitle("Asthma-Related ER Visits by Race (Jan-Aug), 2014-2020")
 
-#Graph Race as a rate
+#Graph Race by Rate
 
 #Import race populations
 RacePopulation <- read_csv("RacePopulation.csv")
@@ -234,7 +236,8 @@ asthma %>%
    theme(panel.grid.minor.x=element_blank())+
    scale_fill_manual(values = c("darkorchid4","turquoise4", "#02075d")) +
     scale_y_continuous(expand = c(0,0), limits = c(0,11)) +
-  ggtitle("Asthma Hospitalization Cases per 10,000 people per month, by Race, 2019")
+  ggtitle("Asthma ER Visit Cases per 10,000 people per month, by Race, 2019")
+
 #Graph asthma rates by race in 2020
 
 asthma %>% 
@@ -248,9 +251,9 @@ asthma %>%
    theme(panel.grid.minor.x=element_blank())+
   scale_fill_manual(values = c("darkorchid4","turquoise4", "#02075d")) +
   scale_y_continuous(expand = c(0,0), limits = c(0,11)) +
-  ggtitle("Asthma Hospitalization Cases per 10,000 people per month, by Race, 2020")
+  ggtitle("Asthma ER Visit Cases per 10,000 people per month, by Race, 2020")
 
-#Graph asthma rates by race in 2019
+#Graph asthma rates by race in 2019 and 2020
 Asthma2019RaceRate <- data.frame(asthma %>% 
   filter(Year == 2019) %>% 
   group_by(RaceCondensed, Year) %>% 
@@ -260,6 +263,8 @@ Asthma2020RaceRate <- data.frame(asthma %>%
   filter(Year == 2020) %>% 
   group_by(RaceCondensed, Year) %>% 
   summarise(total = (10000* n()/(8*mean(RacePop)))))
+
+# Graph rates in 2019 and 2020, combined
 
 
 #make list of datasets to combine
@@ -275,22 +280,24 @@ class(AsthmaRaceRate)
 
 sapply(AsthmaRaceRate, class)
 AsthmaRaceRate$Year <-as.factor(AsthmaRaceRate$Year)
+
+
 #Now graph them together
+## for task force
 AsthmaRaceRate %>% 
   ggplot() +
-  geom_col(aes(x = RaceCondensed, y=total, fill = Year), position = "dodge") +
-  labs(y="Cases", x = "Race") +
+  geom_col(aes(x = Year, y=total, fill = RaceCondensed), position = "dodge") +
+  labs(y="Cases per 10,000 people per month", x = "Year", fill = "Race") +
    theme(axis.text.x=element_text(angle=45,  hjust = 1)) +
    theme(panel.grid.minor.x=element_blank())+
-   scale_fill_manual(values = c("darkorchid4","turquoise4", "#02075d")) +
+   scale_fill_manual(values = c("#D35400","#3498DB", "#566573")) +
     scale_y_continuous(expand = c(0,0), limits = c(0,11)) +
-  ggtitle("Asthma Hospitalization Cases per 10,000 people per month, by Race, 2019 and 2020")
+  ggtitle("Asthma ER Visit Cases per 10,000 people per month, by Race, 2019 and 2020")
 
-class(asthma$AgeGroup)
-asthma$AgeGroup <-as.factor(asthma$AgeGroup)
-#Check on asthma hospitalizations in 2020- do they drop off w/ covid?
+
+#Check on asthma ER Visits in 2020- do they drop off w/ covid?
 asthma %>% 
-  filter(Year == 2020) %>% 
+  filter(Year == 2020 & Month < 9) %>% 
   group_by(RaceCondensed, Month) %>% 
   summarise(total = n()) %>% 
   ggplot() +
@@ -299,11 +306,11 @@ asthma %>%
    theme(axis.text.x=element_text(angle=45,  hjust = 1)) +
     scale_x_continuous(breaks = seq(0,8, by =1))+
    theme(panel.grid.minor.x=element_blank())+
-  ggtitle("Asthma Hospitalization Cases by Month, 2020")
+  ggtitle("Asthma ER Visit Cases by Month, 2020")
 
-#Check on asthma hospitalizations in 2020 for children- do they drop off w/ covid?
+#Check on asthma ER Visits in 2020 for children- do they drop off w/ covid?
 asthma %>% 
-  filter(Year == 2020, AgeGroup == "0-9") %>% 
+  filter(Year == 2020 & AgeGroup == "0-9" & Month <9) %>% 
   group_by(RaceCondensed, Month) %>% 
   summarise(total = n()) %>% 
   ggplot() +
@@ -312,11 +319,11 @@ asthma %>%
    theme(axis.text.x=element_text(angle=45,  hjust = 1)) +
     scale_x_continuous(breaks = seq(0,8, by =1))+
    theme(panel.grid.minor.x=element_blank())+
-  ggtitle("0-9 year olds Asthma Hospitalization Cases by Month, 2020")
+  ggtitle("0-9 year olds Asthma ER Visit Cases by Month, 2020")
 
-#Check on asthma hospitalizations in 2019 for comparison
+#Check on asthma ER Visits in 2019 for comparison
 asthma %>% 
-  filter(Year == 2019| Year==2020) %>% 
+  filter(Year == 2019 | Year==2020) %>% 
   group_by(RaceCondensed, Month) %>% 
   summarise(total = n()) %>% 
   ggplot() +
@@ -325,10 +332,9 @@ asthma %>%
    theme(axis.text.x=element_text(angle=45,  hjust = 1)) +
     scale_x_continuous(breaks = seq(0,12, by =1))+
    theme(panel.grid.minor.x=element_blank())+
-  facet_grid(~ Year) +
-  ggtitle("Asthma Hospitalization Cases by Month, 2019")
+  ggtitle("Asthma ER Visit Cases by Month, 2019")
 
-#Check on asthma hospitalizations in 2019 of kids 0-9 for comparison
+#Check on asthma ER Visits in 2019 of kids 0-9 for comparison
 asthma %>% 
   filter(Year == 2019) %>% 
   group_by(RaceCondensed, Month) %>% 
@@ -339,18 +345,145 @@ asthma %>%
    theme(axis.text.x=element_text(angle=45,  hjust = 1)) +
     scale_x_continuous(breaks = seq(0,12, by =1))+
    theme(panel.grid.minor.x=element_blank())+
-  ggtitle("0-9 Year olds Asthma Hospitalization Cases by Month, 2019")
+  ggtitle("0-9 Year olds Asthma ER Visit Cases by Month, 2019")
 
-##change hospitalization to "ER visits", data source = essence. "preliminary"
+#Put both years together#Change Month to words
+class(asthma$Month)
+asthma$Month <- as.factor(asthma$Month)
+
+asthma$Month <-recode(asthma$Month, "1" = "Jan", "2" = "Feb", "3" = "Mar", "4"= "Apr", "5" = "May", "6" = "Jun", "7" = "Jul", "8" = "Aug", "9" = "Sep", "10" = "Oct", "11" = "Nov", "12" = "Dec")
+
+levels
+#combine month and year
+class(asthma$Year)
+asthma$Year <- as.factor(asthma$Year)
+
+asthma %>%  
+  unite (col= "MonthYear",
+         Month, Year, 
+         sep = ". ", 
+         remove =FALSE)
+
+class(asthma$MonthYear)
+asthma$MonthYear<- as.factor(asthma$MonthYear)
+
+asthma %>% 
+  filter(Year == 2019 | Year == 2020) %>% 
+  group_by(RaceCondensed, MonthYear) %>% 
+  summarise(total = n()) %>% 
+  ggplot() +
+   geom_line(aes(x = MonthYear, y = total, color = RaceCondensed), size = 1) +
+  labs(y="Cases", x = "Month", color = "Race") +
+   theme(axis.text.x=element_text(angle=45,  hjust = 1)) +
+    scale_x_continuous(breaks = seq(0,12, by =1))+
+   theme(panel.grid.minor.x=element_blank())+
+  ggtitle("Asthma ER Visit Cases by Month, 2019-2020")
+
+##change ER Visit to "ER visits", data source = essence. "preliminary"
 
 ```
+##Graphs for task force
+```{r}
+#change order of race
+#check levels
+levels(asthma$RaceCondensed)
+#make a list with new order of levels
+ newlevel <- c("Black", "White","Other")
+ #change the order of the levels in race
+ asthma$RaceCondensed <- factor(asthma$RaceCondensed, levels = newlevel)
+#Code for rate
+RacePopulation <- read_csv("RacePopulation.csv")
+
+#Check and fix class of RacePopulation dataframe and Race variable
+class(RacePopulation)
+RacePopulation<-data.frame(RacePopulation)
+
+class(RacePopulation$Race)
+RacePopulation$Race<-as.factor(RacePopulation$Race)
+
+
+#check and fix variable names to match
+unique(RacePopulation$Race)
+unique(asthma$Race)
+
+RacePopulation$Race <- recode(RacePopulation$Race, "African American" = "Black", "Caucasian" = "White")
+
+asthma <- asthma %>% 
+  left_join(RacePopulation, by = c("RaceCondensed" = "Race")) %>% 
+    rename("RacePop" = "Population")
+
+#Graph by race, year, and rate
+asthma %>% 
+  filter(Year < 2020) %>% 
+  group_by(RaceCondensed, Year) %>% 
+  summarise(Total = n(), Pop = mean(RacePop), Rate = 1000*Total/Pop) %>% 
+  ggplot() +
+  geom_point(aes(x = Year, y = Rate, color = RaceCondensed), size = 3, shape = 4)+
+   geom_line(aes(x = Year, y = Rate, color = RaceCondensed), size = 1) +
+  labs(y="Cases per 1,000 People", x = "Year", color = "Race") +
+   theme(axis.text.x=element_text(angle=45,  hjust = 1)) +
+    scale_x_continuous(breaks = seq(2014,2020, by =1))+
+   theme(panel.grid.minor.x=element_blank())+
+  scale_color_manual(values = c("darkorchid4","turquoise4", "red"))+
+  ggtitle("Asthma-Related ER Visits by Race, 2014-2019")
+
+#Try for kids 0-9
+
+#change order of race
+#check levels
+levels(asthma$RaceCondensed)
+#make a list with new order of levels
+ newlevel <- c("Black", "White","Other")
+ #change the order of the levels in race
+ asthma$RaceCondensed <- factor(asthma$RaceCondensed, levels = newlevel)
+#Code for rate
+ChildrenRacePopulation <- read_csv("Under10RacePopulation.csv")
+
+#Check and fix class of RacePopulation dataframe and Race variable
+class(ChildrenRacePopulation)
+ChildrenRacePopulation<-data.frame(ChildrenRacePopulation)
+
+class(ChildrenRacePopulation$Race)
+ChildrenRacePopulation$Race<-as.factor(ChildrenRacePopulation$Race)
+
+
+#check and fix variable names to match
+unique(ChildrenRacePopulation$Race)
+unique(asthma$RaceCondensed)
+
+ChildrenRacePopulation$Race <- recode(ChildrenRacePopulation$Race, "BlackOrAfricanAmerican" = "Black")
+
+asthma <- asthma %>% 
+  left_join(ChildrenRacePopulation, by = c("RaceCondensed" = "Race")) %>% 
+    rename("Under10Pop" = "Under10Pop")
+
+#Now graph for children 0-9
+#Graph by race, year, and rate
+asthma %>% 
+  filter(Year < 2020 & Age < 10) %>% 
+  group_by(RaceCondensed, Year) %>% 
+  summarise(Total = n(), Pop = mean(Under10Pop), Rate = 1000*Total/Pop) %>% 
+  ggplot() +
+  geom_point(aes(x = Year, y = Rate, color = RaceCondensed), size = 3, shape = 4)+
+   geom_line(aes(x = Year, y = Rate, color = RaceCondensed), size = 1) +
+  labs(y="Cases per 1,000 People", x = "Year", color = "Race") +
+   theme(axis.text.x=element_text(angle=45,  hjust = 1)) +
+    scale_x_continuous(breaks = seq(2014,2020, by =1))+
+   theme(panel.grid.minor.x=element_blank())+
+  scale_color_manual(values = c("darkorchid4","turquoise4", "red"))+
+  ggtitle("Asthma-Related ER Visits by Race for Children 0-9, 2014-2019")
+
+```
+
+
+
 ```{r}
 #Check the total number of cases by ethnicity, over time. Only include Jan-August so that it is comparable to 2020
 asthma %>% 
   filter(Month < 9) %>% 
   group_by(Ethnicity, Year) %>% 
   summarise(total = n()) 
-#There aren't really enough Latinx cases to be able to look at this as a proportion? could try
+#There aren't really enough Latinx cases to be able to look at this as a proportion? 
 
 #Graph the total number of cases by zipcode in 2019
 asthma %>% 
@@ -363,19 +496,20 @@ summarise(total = n()) %>%
   scale_y_continuous(expand = c(0,0),
                      limits = c(0,300)) +
   labs(y="Cases", x = "Zip Code")+
-  ggtitle("Asthma Hospitalization Cases by Zip Code, Jan.- Dec. 2019")
+  ggtitle("Asthma ER Visit Cases by Zip Code, Jan.- Dec. 2019")
 
 #Graph the total number of cases by zipcode in 2020
 asthma %>% 
-  filter(Year==2020) %>% 
-  group_by(Zipcode) %>% 
+  filter(Year==2020 | Year==2019) %>% 
+  group_by(Zipcode, Year) %>% 
+  summarise(total = n()) %>% 
 summarise(total = n()) %>% 
   ggplot() +
    geom_col(aes(x = reorder(Zipcode, -total), y= total, dodge = TRUE), fill = "Maroon") +
   theme(axis.text.x=element_text(angle=45,hjust=1,), legend.position = "none") +
     scale_y_continuous(expand = c(0,0), limits = c(0,150)) +
   labs(y="Cases", x = "Zip Code")+
-  ggtitle("Asthma Hospitalization Cases by Zip Code, Jan.-Aug. 2020")
+  ggtitle("Asthma ER Visit Cases by Zip Code, Jan.-Aug. 2020")
 
 
  
@@ -422,7 +556,7 @@ summarise(total = n()) %>%
   theme(axis.text.x=element_text(angle=45,hjust=1,), legend.position = "none") +
   labs(y="Cases", x = "Age Group")+
   scale_y_continuous(expand = c(0,0), limits = c(0,450)) +
-  ggtitle("Asthma Hospitalization Cases by Age Group, Jan.-Dec. 2019")
+  ggtitle("Asthma ER Visit Cases by Age Group, Jan.-Dec. 2019")
 
 #Graph the total number of cases by age group in 2020
 asthma %>% 
@@ -434,7 +568,7 @@ summarise(total = n()) %>%
   theme(axis.text.x=element_text(angle=45,hjust=1,), legend.position = "none") +
   labs(y="Cases", x = "Age Group")+
  scale_y_continuous(expand = c(0,0), limits=c(0,200)) +
-  ggtitle("Asthma Hospitalization Cases by Age Group, Jan.-Aug 2020")
+  ggtitle("Asthma ER Visit Cases by Age Group, Jan.-Aug 2020")
 
 #Graph the total number of cases by practical age group in 2019
 asthma %>% 
@@ -446,7 +580,7 @@ summarise(total = n()) %>%
   theme(axis.text.x=element_text(angle=45,hjust=1,), legend.position = "none") +
   labs(y="Cases", x = "Age Group")+
   scale_y_continuous(expand = c(0,0), limits = c(0,500)) +
-  ggtitle("Asthma Hospitalization Cases by Age Group, Jan.-Dec. 2019")
+  ggtitle("Asthma ER Visit Cases by Age Group, Jan.-Dec. 2019")
 
 #Graph the total number of cases by age group in 2020
 asthma %>% 
@@ -458,7 +592,7 @@ summarise(total = n()) %>%
   theme(axis.text.x=element_text(angle=45,hjust=1,), legend.position = "none") +
   labs(y="Cases", x = "Age Group")+
  scale_y_continuous(expand = c(0,0), limits=c(0,210)) +
-  ggtitle("Asthma Hospitalization Cases by Age Group, Jan.-Aug 2020")
+  ggtitle("Asthma ER Visit Cases by Age Group, Jan.-Aug 2020")
        
 
 ```
@@ -530,7 +664,7 @@ asthma %>%
    theme(axis.text.x=element_text(angle=45,  hjust = 1)) +
     scale_x_continuous(breaks = seq(2014,2020, by =1))+
    theme(panel.grid.minor.x=element_blank())+
-  ggtitle("Asthma Hospitalization Cases per 10,000 people per month, by Ethnicity, 2014-2020")
+  ggtitle("Asthma ER Visit Cases per 10,000 people per month, by Ethnicity, 2014-2020")
 
 # NOTE: Sizes are probably too small for hispanic/latino to really be reasonable. Also, there are a LOT of unknowns, which got lumped into "not hispanic or latino" but are difficult to make meaningful conclusions from. I would NOT trust the analysis of ethnicity. 
 
@@ -548,7 +682,7 @@ asthma %>%
    theme(axis.text.x=element_text(angle=45,  hjust = 1)) +
     scale_x_continuous(breaks = seq(2014,2020, by =1))+
    theme(panel.grid.minor.x=element_blank())+
-  ggtitle("Asthma Hospitalization Cases per 10,000 people per month, by Race, 2014-2020")
+  ggtitle("Asthma ER Visit Cases per 10,000 people per month, by Race, 2014-2020")
 
 #Graph asthma rates by race in 2020
 
@@ -562,7 +696,7 @@ asthma %>%
    theme(axis.text.x=element_text(angle=45,  hjust = 1)) +
    theme(panel.grid.minor.x=element_blank())+
   scale_fill_manual(values = c("darkorchid4","turquoise4", "#02075d")) +
-  ggtitle("Asthma Hospitalization Cases per 10,000 people per month, by Race, 2020")
+  ggtitle("Asthma ER Visit Cases per 10,000 people per month, by Race, 2020")
 
 asthma %>% 
   filter(Year == 2019) %>% 
@@ -574,7 +708,7 @@ asthma %>%
    theme(axis.text.x=element_text(angle=45,  hjust = 1)) +
    theme(panel.grid.minor.x=element_blank())+
    scale_fill_manual(values = c("darkorchid4","turquoise4", "#02075d")) +
-  ggtitle("Asthma Hospitalization Cases per 10,000 people per month, by Race, 2019")
+  ggtitle("Asthma ER Visit Cases per 10,000 people per month, by Race, 2019")
 ```
 
 ```{r}
